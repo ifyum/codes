@@ -1,0 +1,47 @@
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.util.StringUtils;
+import reactor.netty.http.client.HttpClient;
+import reactor.netty.tcp.ProxyProvider;
+
+@Configuration
+@EnableConfigurationProperties(HttpClientProperties.class)
+public class HttpClientConfiguration {
+
+    private final HttpClientProperties properties;
+
+    @Autowired
+    public HttpClientConfiguration(HttpClientProperties properties) {
+        this.properties = properties;
+    }
+
+    @Bean
+    public HttpClient httpClient() {
+        HttpClientProperties.Proxy proxy = properties.getProxy();
+
+        HttpClient httpClient = HttpClient.create();
+
+        if (StringUtils.hasText(proxy.getHost())) {
+            httpClient = httpClient.proxy(proxySpec -> {
+                ProxyProvider.Builder builder = proxySpec
+                        .type(ProxyProvider.Proxy.HTTP)
+                        .host(proxy.getHost())
+                        .port(proxy.getPort());
+
+                if (StringUtils.hasText(proxy.getUsername())) {
+                    builder = builder.username(proxy.getUsername());
+                }
+
+                if (StringUtils.hasText(proxy.getPassword())) {
+                    builder = builder.passwordSupplier(() -> proxy.getPassword());
+                }
+
+                return builder.build();
+            });
+        }
+
+        return httpClient;
+    }
+}
