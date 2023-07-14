@@ -1,0 +1,60 @@
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.util.StringUtils;
+import reactor.netty.http.client.HttpClient;
+import reactor.netty.tcp.ProxyProvider;
+import reactor.netty.tcp.SslProvider;
+import reactor.netty.tcp.TcpClient;
+
+@Configuration
+@EnableConfigurationProperties(HttpClientProperties.class)
+public class HttpClientConfiguration {
+
+    private final HttpClientProperties properties;
+
+    @Autowired
+    public HttpClientConfiguration(HttpClientProperties properties) {
+        this.properties = properties;
+    }
+
+    @Bean
+    public HttpClient httpClient() {
+        HttpClientProperties.Proxy proxy = properties.getProxy();
+        TcpClient tcpClient = TcpClient.create();
+
+        if (StringUtils.hasText(proxy.getHost())) {
+            tcpClient = tcpClient.proxy(proxySpec -> proxySpec
+                    .type(ProxyProvider.Proxy.HTTP)
+                    .host(proxy.getHost())
+                    .port(proxy.getPort())
+                    .username(proxy.getUsername())
+                    .password(proxy.getPassword())
+                    .nonProxyHosts(proxy.getNonProxyHostsPattern())
+            );
+        }
+
+        HttpClient httpClient = HttpClient.from(tcpClient);
+
+        HttpClientProperties.Ssl ssl = properties.getSsl();
+        if (ssl != null) {
+            SslProvider sslProvider = SslProvider.builder()
+                    .sslContext(sslContextSpec -> {
+                        SslContextBuilder sslContextBuilder = SslContextBuilder.forClient();
+
+                        // Configurar el contexto SSL según las propiedades SSL/TLS
+                        // sslContextBuilder....
+
+                        sslContextSpec.sslContext(sslContextBuilder);
+                    })
+                    .build();
+
+            httpClient = httpClient.secure(sslProvider);
+        }
+
+        return httpClient;
+    }
+}
