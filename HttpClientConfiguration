@@ -1,0 +1,107 @@
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.util.StringUtils;
+import reactor.netty.http.client.HttpClient;
+import reactor.netty.tcp.ProxyProvider;
+import reactor.netty.tcp.SslProvider;
+import reactor.netty.tcp.TcpClient;
+
+import javax.net.ssl.SSLParameters;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SNIMatcher;
+import javax.net.ssl.SNIServerName;
+import java.security.cert.X509Certificate;
+import java.util.LinkedList;
+import java.util.List;
+
+@Configuration
+@EnableConfigurationProperties(HttpClientProperties.class)
+public class HttpClientConfiguration {
+
+    private final HttpClientProperties properties;
+
+    @Autowired
+    public HttpClientConfiguration(HttpClientProperties properties) {
+        this.properties = properties;
+    }
+
+    @Bean
+    public HttpClient httpClient() {
+        HttpClientProperties.Pool pool = properties.getPool();
+        TcpClient tcpClient;
+
+        if (pool.getType() == DISABLED) {
+            tcpClient = TcpClient.newConnection();
+        } else if (pool.getType() == FIXED) {
+            tcpClient = TcpClient.create()
+                    .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, properties.getConnectTimeout())
+                    .doOnConnected(connection -> connection.addHandlerLast(new ReadTimeoutHandler(pool.getAcquireTimeout())));
+        } else {
+            tcpClient = TcpClient.elastic().option(ChannelOption.CONNECT_TIMEOUT_MILLIS, properties.getConnectTimeout());
+        }
+
+        HttpClient httpClient = HttpClient.create(tcpClient);
+
+        if (StringUtils.hasText(properties.getProxy().getHost())) {
+            HttpClientProperties.Proxy proxy = properties.getProxy();
+
+            httpClient = httpClient.proxy(proxySpec -> {
+                ProxyProvider.Builder builder = proxySpec
+                        .type(ProxyProvider.Proxy.HTTP)
+                        .host(proxy.getHost());
+
+                PropertyMapper map = PropertyMapper.get();
+
+                map.from(proxy::getPort).whenNonNull().to(builder::port);
+                map.from(proxy::getUsername).whenHasText().to(builder::username);
+                map.from(proxy::getPassword).whenHasText().to(password -> builder.password(s -> password));
+                map.from(proxy::getNonProxyHostsPattern).whenHasText().to(builder::nonProxyHosts);
+            });
+        }
+
+        HttpClientProperties.Ssl ssl = properties.getSsl();
+        if (ssl.getTrustedX509CertificatesForTrustManager().length > 0
+                || ssl.isUseInsecureTrustManager()) {
+            SslProvider sslProvider = SslProvider.builder()
+                    .sslContext(sslContextSpec -> {
+                        SslContextBuilder sslContextBuilder = SslContextBuilder.forClient();
+
+                        X509Certificate[] trustedX509Certificates = ssl.getTrustedX509CertificatesForTrustManager();
+                        if (trustedX509Certificates.length > 0) {
+                            sslContextBuilder.trustManager(trustedX509Certificates);
+                        } else if (ssl.isUseInsecureTrustManager()) {
+                            sslContextBuilder.trustManager(InsecureTrustManagerFactory.INSTANCE);
+                        }
+
+                        sslContextSpec.sslContext(sslContextBuilder)
+                                .defaultConfiguration(ssl.getDefaultConfigurationType())
+                                .handshakeTimeoutMillis(ssl.getHandshakeTimeout())
+                                .closeNotifyFlushTimeoutMillis(ssl.getCloseNotifyFlushTimeout())
+                                .closeNotifyReadTimeoutMillis(ssl.getCloseNotifyReadTimeout())
+                                .handlerConfigurator((handler)-> {
+                                    SSLEngine engine = handler.engine();
+                                    SSLParameters params = new SSLParameters();
+                                    List<SNIMatcher> matchers = new LinkedList<>();
+                                    SNIMatcher matcher = new SNIMatcher(0) {
+                                        @Override
+                                        public boolean matches(SNIServerName serverName) {
+                                            return true;
+                                        }
+                                    };
+                                    matchers.add(matcher);
+                                    params.setSNIMatchers(matchers);
+                                    engine.setSSLParameters(params);
+                                });
+                    })
+                    .build();
+
+            httpClient = httpClient.secure(sslProvider);
+        }
+
+        return httpClient;
+    }
+}
