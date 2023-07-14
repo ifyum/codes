@@ -1,0 +1,16 @@
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import reactor.netty.http.client.HttpClient;
+
+@Service
+public class MyService {
+
+    private final HttpClient httpClient;
+
+    @Autowired
+    public MyService(HttpClient httpClient) {
+        this.httpClient = httpClient;
+    }
+
+    // Usa el HttpClient inyectado para hacer solicitudes HTTP
+}
