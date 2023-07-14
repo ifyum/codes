@@ -1,0 +1,11 @@
+<!-- Para Spring Web -->
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-web</artifactId>
+</dependency>
+
+<!-- Para Reactor Netty -->
+<dependency>
+    <groupId>io.projectreactor.netty</groupId>
+    <artifactId>reactor-netty-http</artifactId>
+</dependency>
