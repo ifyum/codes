@@ -32,10 +32,10 @@ public class HttpClientConfiguration {
             if (StringUtils.hasText(proxy.getUsername()) && StringUtils.hasText(proxy.getPassword())) {
                 proxyBuilder = proxyBuilder
                         .username(proxy.getUsername())
-                        .password(proxy.getPassword());
+                        .password(password -> password instanceof String ? (String) password : null);
             }
 
-            httpClient = httpClient.proxy(proxyBuilder);
+            httpClient = httpClient.tcpConfiguration(tcpClient -> tcpClient.proxy(proxyBuilder));
         }
 
         return httpClient;
