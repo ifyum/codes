@@ -1,0 +1,186 @@
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
+
+import java.time.Duration;
+
+@Component
+@ConfigurationProperties(prefix = "http-client")
+public class HttpClientProperties {
+    private Pool pool;
+    private Proxy proxy;
+    private Ssl ssl;
+
+    public Pool getPool() {
+        return pool;
+    }
+
+    public void setPool(Pool pool) {
+        this.pool = pool;
+    }
+
+    public Proxy getProxy() {
+        return proxy;
+    }
+
+    public void setProxy(Proxy proxy) {
+        this.proxy = proxy;
+    }
+
+    public Ssl getSsl() {
+        return ssl;
+    }
+
+    public void setSsl(Ssl ssl) {
+        this.ssl = ssl;
+    }
+
+    public static class Pool {
+        private PoolType type;
+        private String name;
+        private int maxConnections;
+        private Duration acquireTimeout;
+
+        public PoolType getType() {
+            return type;
+        }
+
+        public void setType(PoolType type) {
+            this.type = type;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public int getMaxConnections() {
+            return maxConnections;
+        }
+
+        public void setMaxConnections(int maxConnections) {
+            this.maxConnections = maxConnections;
+        }
+
+        public Duration getAcquireTimeout() {
+            return acquireTimeout;
+        }
+
+        public void setAcquireTimeout(Duration acquireTimeout) {
+            this.acquireTimeout = acquireTimeout;
+        }
+    }
+
+    public static class Proxy {
+        private String host;
+        private int port;
+        private String username;
+        private String password;
+        private String nonProxyHostsPattern;
+
+        public String getHost() {
+            return host;
+        }
+
+        public void setHost(String host) {
+            this.host = host;
+        }
+
+        public int getPort() {
+            return port;
+        }
+
+        public void setPort(int port) {
+            this.port = port;
+        }
+
+        public String getUsername() {
+            return username;
+        }
+
+        public void setUsername(String username) {
+            this.username = username;
+        }
+
+        public String getPassword() {
+            return password;
+        }
+
+        public void setPassword(String password) {
+            this.password = password;
+        }
+
+        public String getNonProxyHostsPattern() {
+            return nonProxyHostsPattern;
+        }
+
+        public void setNonProxyHostsPattern(String nonProxyHostsPattern) {
+            this.nonProxyHostsPattern = nonProxyHostsPattern;
+        }
+    }
+
+    public static class Ssl {
+        private X509Certificate[] trustedX509CertificatesForTrustManager;
+        private boolean useInsecureTrustManager;
+        private String defaultConfigurationType;
+        private Duration handshakeTimeout;
+        private Duration closeNotifyFlushTimeout;
+        private Duration closeNotifyReadTimeout;
+
+        public X509Certificate[] getTrustedX509CertificatesForTrustManager() {
+            return trustedX509CertificatesForTrustManager;
+        }
+
+        public void setTrustedX509CertificatesForTrustManager(X509Certificate[] trustedX509CertificatesForTrustManager) {
+            this.trustedX509CertificatesForTrustManager = trustedX509CertificatesForTrustManager;
+        }
+
+        public boolean isUseInsecureTrustManager() {
+            return useInsecureTrustManager;
+        }
+
+        public void setUseInsecureTrustManager(boolean useInsecureTrustManager) {
+            this.useInsecureTrustManager = useInsecureTrustManager;
+        }
+
+        public String getDefaultConfigurationType() {
+            return defaultConfigurationType;
+        }
+
+        public void setDefaultConfigurationType(String defaultConfigurationType) {
+            this.defaultConfigurationType = defaultConfigurationType;
+        }
+
+        public Duration getHandshakeTimeout() {
+            return handshakeTimeout;
+        }
+
+        public void setHandshakeTimeout(Duration handshakeTimeout) {
+            this.handshakeTimeout = handshakeTimeout;
+        }
+
+        public Duration getCloseNotifyFlushTimeout() {
+            return closeNotifyFlushTimeout;
+        }
+
+        public void setCloseNotifyFlushTimeout(Duration closeNotifyFlushTimeout) {
+            this.closeNotifyFlushTimeout = closeNotifyFlushTimeout;
+        }
+
+        public Duration getCloseNotifyReadTimeout() {
+            return closeNotifyReadTimeout;
+        }
+
+        public void setCloseNotifyReadTimeout(Duration closeNotifyReadTimeout) {
+            this.closeNotifyReadTimeout = closeNotifyReadTimeout;
+        }
+    }
+
+    public enum PoolType {
+        DISABLED,
+        FIXED,
+        ELASTIC
+    }
+}
