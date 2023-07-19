@@ -1,0 +1,25 @@
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+public class MiCliente {
+
+    public static void main(String[] args) {
+        WebClient webClient = WebClient.create("http://localhost:8080"); // URL del servidor
+
+        // Objeto que deseas enviar al servidor
+        MiObjeto objetoEnviar = new MiObjeto("Valor1", 42);
+
+        // Realizar la solicitud POST al servidor y recibir la lista como respuesta
+        Flux<MiObjeto> listaRespuesta = webClient.post()
+                .uri("/mi-endpoint") // Endpoint del servidor
+                .body(Mono.just(objetoEnviar), MiObjeto.class) // Convertir el objeto a JSON y enviarlo
+                .retrieve()
+                .bodyToFlux(MiObjeto.class); // Convertir la respuesta JSON en una lista de objetos
+
+        listaRespuesta.subscribe(objeto -> {
+            // Procesar cada objeto de la lista de respuesta recibida del servidor
+            System.out.println("Campo1: " + objeto.getCampo1() + ", Campo2: " + objeto.getCampo2());
+        });
+    }
+}
