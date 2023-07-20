@@ -1,0 +1,17 @@
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+@Component
+public class ScheduledTask {
+
+    private final YourService service; // Reemplaza "YourService" con el nombre de tu servicio que consume el endpoint
+
+    public ScheduledTask(YourService service) {
+        this.service = service;
+    }
+
+    @Scheduled(fixedRate = 3600000) // 3600000 ms = 1 hora
+    public void callEndpointEveryHour() {
+        service.consumeEndpoint(); // Llama al método que ya tienes para consumir el endpoint
+    }
+}
